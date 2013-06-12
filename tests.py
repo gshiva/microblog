@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from config import basedir
 from app import app, db
-from app.models import User, Post
+from app.models import User, Post, MCSetting
 from app.translate import microsoft_translate
 
 class TestCase(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         
-    def make_four_users(self):
+    def add_four_users(self):
         u1 = User(nickname = 'john', email = 'john@example.com')
         u2 = User(nickname = 'susan', email = 'susan@example.com')
         u3 = User(nickname = 'mary', email = 'mary@example.com')
@@ -161,12 +161,37 @@ class TestCase(unittest.TestCase):
         db.session.commit()
 
     def test_mcsetting(self):
-        # create a user
-        u = User(nickname = 'john', email = 'john@example.com')
-        db.session.add(u)
-        db.session.commit()
-        
-
+        # make valid nicknames
+        n = MCSetting.make_valid_name('Config_123')
+        assert n == 'Config_123'
+        n = MCSetting.make_valid_name('Config_[123]\n')
+        assert n == 'Config_123'
+        # create the users
+        u1, u2, u3, u4 = self.add_four_users()
+        # add four configs
+        utcnow = datetime.utcnow()
+        c1 = MCSetting(name = "u1_config", physics_verbosity = 0, physics_SetList = "u1 set list", author = u1, timestamp = utcnow + timedelta(seconds = 1))
+        c2 = MCSetting(name = "u2_config", physics_verbosity = 0, physics_SetList = "u2 set list", author = u2, timestamp = utcnow + timedelta(seconds = 2))
+        c3 = MCSetting(name = "u3_config", physics_verbosity = 0, physics_SetList = "u3 set list", author = u3, timestamp = utcnow + timedelta(seconds = 3))
+        c4 = MCSetting(name = "u4_config", physics_verbosity = 0, physics_SetList = "u4 set list", author = u4, timestamp = utcnow + timedelta(seconds = 4))
+        db.session.add(c1)
+        db.session.add(c2)
+        db.session.add(c3)
+        db.session.add(c4)
+        #check if the user is assigned the right config
+        mc1 = u1.settings.all()
+        mc2 = u2.settings.all()
+        mc3 = u3.settings.all()
+        mc4 = u4.settings.all()
+        assert len(mc1) == 1
+        assert len(mc2) == 1
+        assert len(mc3) == 1
+        assert len(mc4) == 1
+        assert mc1[0] == c1
+        assert mc2[0] == c2
+        assert mc3[0] == c3
+        assert mc4[0] == c4
+        assert mc1[0] != c2
 
     def test_translation(self):
         assert microsoft_translate(u'English', 'en', 'es') == u'Inglés'

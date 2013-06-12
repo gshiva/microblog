@@ -38,4 +38,12 @@
     <li class="next disabled"><a href="#">{{ _('Older posts') }}</a></li>
     {% endif %}
 </ul>
+<div class="well">
+    <form action="{{url_for('mc_add')}}" method="post">
+        <input class="btn btn-primary" type="submit" name="config" value="New Config">
+    </form>
+</div>
+{% for mcsetting in mcsettings %}
+    {% include 'mcsetting.html' %}
+{% endfor %}
 {% endblock %}
