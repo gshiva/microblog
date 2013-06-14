@@ -16,3 +16,6 @@ class momentjs:
     def fromNow(self):
         return self.render("fromNow()")
 
+    def __call__(self, *args):
+        return self.format(*args)
+
