@@ -24,6 +24,17 @@ class TestCase(unittest.TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+        
+    def make_four_users(self):
+        u1 = User(nickname = 'john', email = 'john@example.com')
+        u2 = User(nickname = 'susan', email = 'susan@example.com')
+        u3 = User(nickname = 'mary', email = 'mary@example.com')
+        u4 = User(nickname = 'david', email = 'david@example.com')
+        db.session.add(u1)
+        db.session.add(u2)
+        db.session.add(u3)
+        db.session.add(u4)
+        return u1, u2, u3, u4
 
     def test_user(self):
         # make valid nicknames
@@ -90,14 +101,7 @@ class TestCase(unittest.TestCase):
         
     def test_follow_posts(self):
         # make four users
-        u1 = User(nickname = 'john', email = 'john@example.com')
-        u2 = User(nickname = 'susan', email = 'susan@example.com')
-        u3 = User(nickname = 'mary', email = 'mary@example.com')
-        u4 = User(nickname = 'david', email = 'david@example.com')
-        db.session.add(u1)
-        db.session.add(u2)
-        db.session.add(u3)
-        db.session.add(u4)
+        u1, u2, u3, u4 = self.add_four_users()
         # make four posts
         utcnow = datetime.utcnow()
         p1 = Post(body = "post from john", author = u1, timestamp = utcnow + timedelta(seconds = 1))
@@ -155,6 +159,14 @@ class TestCase(unittest.TestCase):
         db.session = db.create_scoped_session()
         db.session.delete(p)
         db.session.commit()
+
+    def test_mcsetting(self):
+        # create a user
+        u = User(nickname = 'john', email = 'john@example.com')
+        db.session.add(u)
+        db.session.commit()
+        
+
 
     def test_translation(self):
         assert microsoft_translate(u'English', 'en', 'es') == u'Inglés'
