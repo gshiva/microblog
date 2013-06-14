@@ -3,8 +3,9 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 from flask.ext.sqlalchemy import get_debug_queries
 from flask.ext.babel import gettext
 from app import app, db, lm, oid, babel
-from forms import LoginForm, EditForm, PostForm, SearchForm
-from models import User, ROLE_USER, ROLE_ADMIN, Post
+from run import Command
+from forms import LoginForm, EditForm, PostForm, SearchForm, MCEditForm
+from models import User, ROLE_USER, ROLE_ADMIN, Post, MCSetting
 from datetime import datetime
 from emails import follower_notification
 from guess_language import guessLanguage
@@ -65,10 +66,12 @@ def index(page = 1):
         flash(gettext('Your post is now live!'))
         return redirect(url_for('index'))
     posts = g.user.followed_posts().paginate(page, POSTS_PER_PAGE, False)
+    mcsettings = g.user.settings.all()
     return render_template('index.html',
         title = 'Home',
         form = form,
-        posts = posts)
+        posts = posts,
+        mcsettings = mcsettings)
 
 @app.route('/login', methods = ['GET', 'POST'])
 @oid.loginhandler
@@ -143,6 +146,46 @@ def edit():
         form.about_me.data = g.user.about_me
     return render_template('edit.html',
         form = form)
+
+@app.route('/mc_add', methods = ['POST'])
+@login_required
+def mc_add():
+    form = MCEditForm(g.user, "")
+    if form.validate_on_submit():
+        mcs = MCSetting(name = form.name.data, physics_verbosity = form.verbosity.data, physics_SetList = form.set_list.data, author = g.user, timestamp = datetime.utcnow())
+        db.session.add(mcs)
+        db.session.commit()
+        flash(gettext('Your settings have been saved.'))
+        return redirect(url_for('index'))
+    return render_template('mcsetting_edit.html', form = form)
+
+@app.route('/mc_edit/<name>', methods = ['GET', 'POST'])
+@login_required
+def mc_edit(name):
+    mcs = g.user.settings.filter_by(name = name).first()
+    form = MCEditForm(g.user, mcs.name)
+    if form.validate_on_submit():
+        mcs.name = form.name.data
+        mcs.physics_verbosity = form.verbosity.data
+        mcs.physics_SetList = form.set_list.data
+        db.session.add(mcs)
+        db.session.commit()
+        flash(gettext('Your changes have been saved.'))
+        return redirect(url_for('mc_edit', name = mcs.name))
+    elif request.method != "POST":
+        form.name.data = mcs.name
+        form.verbosity.data = mcs.physics_verbosity
+        form.set_list.data = mcs.physics_SetList
+    return render_template('mcsetting_edit.html',
+        form = form)
+
+@app.route('/run/<name>', methods = ['GET', 'POST'])
+@login_required
+def run(name):
+    command = Command("echo 'Process started'; sleep 2; echo 'Process finished'")
+    output = command.run(timeout=1, shell=True)
+    return render_template('output.html',
+        output = output)
 
 @app.route('/follow/<nickname>')
 @login_required
