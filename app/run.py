@@ -19,7 +19,7 @@ class Command(object):
 
     def __init__(self, command):
         if isinstance(command, basestring):
-            command = shlex.split(command)
+            command = shlex.split(command, posix = False)
         self.command = command
 
     def run(self, timeout=None, **kwargs):
@@ -44,4 +44,4 @@ class Command(object):
         if thread.is_alive():
             self.process.terminate()
             thread.join()
-        return self.status, self.output, self.error
+        return self.command, self.status, self.output, self.error

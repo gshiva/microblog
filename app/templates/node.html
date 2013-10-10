@@ -1,0 +1,17 @@
+<tr>
+<td>{{node.name}}</td>
+<td>{{node.ip}}</td>
+<td>
+    <form action="{{url_for('bootstrap', ip = node.ip, grp_name = grp.name)}}" method="post">
+        <input class="btn btn-primary" type="submit" name="bootstrap" value="Bootstrap!">
+    </form>
+</td>
+<td>
+    <form action="{{url_for('deploy', node_name = node.name, grp_name = grp.name)}}" method="post">
+        <input class="btn btn-primary" type="submit" name="deploy" value="Deploy!">
+    </form>
+</td>
+<td><form action="{{url_for('node_edit', org_name = org.name, env_name = env.name , grp_name = grp.name, node_name = node.name)}}" method="get">
+<input class="btn btn-primary" type="submit" name="config" value="Edit Node">
+</form></td>
+</tr>

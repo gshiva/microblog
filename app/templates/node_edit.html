@@ -1,0 +1,36 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ _('Edit Your Node Details') }}</h1>
+{% include 'flash.html' %}
+<div class="well">
+    <form class="form-horizontal" action="" method="post" name="edit">
+        {{form.hidden_tag()}}
+        <div class="control-group{% if form.errors.post %} error{% endif %}">
+            <label class="control-label" for="name">{{ _('Node name:') }}</label>
+            <div class="controls">
+                {{ form.name(maxlength = 140, class = "span4") }}
+                {% for error in form.errors.name %}
+                    <span class="help-inline">[{{error}}]</span><br>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="control-group{% if form.errors.post %} error{% endif %}">
+            <label class="control-label" for="ip">{{ _('IP:') }}</label>
+            <div class="controls">
+                {{ form.ip(cols = 64, rows = 4, class = "span4") }}
+                {% for error in form.errors.ip %}
+                    <span class="help-inline">[{{error}}]</span><br>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="control-group">
+            <div class="controls">
+                <input class="btn btn-primary" type="submit" value="{{ _('Save Changes') }}">
+            </div>
+        </div>
+    </form>
+</div>
+</form>
+{% endblock %}

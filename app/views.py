@@ -4,8 +4,8 @@ from flask.ext.sqlalchemy import get_debug_queries
 from flask.ext.babel import gettext
 from app import app, db, lm, oid, babel
 from run import Command
-from forms import LoginForm, EditForm, PostForm, SearchForm, MCEditForm
-from models import User, ROLE_USER, ROLE_ADMIN, Post, MCSetting
+from forms import LoginForm, EditForm, PostForm, SearchForm, MCEditForm, OrgEditForm, EnvEditForm, GrpEditForm, NodeEditForm
+from models import User, ROLE_USER, ROLE_ADMIN, Post, MCSetting, Organization, Env, Group, Node
 from datetime import datetime
 from emails import follower_notification
 from guess_language import guessLanguage
@@ -66,11 +66,13 @@ def index(page = 1):
         flash(gettext('Your post is now live!'))
         return redirect(url_for('index'))
     posts = g.user.followed_posts().paginate(page, POSTS_PER_PAGE, False)
+    orgs = 	g.user.organizations.all()
     mcsettings = g.user.settings.all()
     return render_template('index.html',
         title = 'Home',
         form = form,
         posts = posts,
+		orgs = orgs,
         mcsettings = mcsettings)
 
 @app.route('/login', methods = ['GET', 'POST'])
@@ -179,6 +181,107 @@ def mc_edit(name):
     return render_template('mcsetting_edit.html',
         form = form)
 
+@app.route('/org_add', methods = ['POST'])
+@login_required
+def org_add():
+    form = OrgEditForm(g.user, "")
+    if form.validate_on_submit():
+        org = Organization(name = form.name.data, user = g.user, timestamp = datetime.utcnow())
+        db.session.add(org)
+        db.session.commit()
+        flash(gettext('Your settings have been saved.'))
+        return redirect(url_for('index'))
+    return render_template('org_edit.html', form = form)
+
+@app.route('/org_edit/<name>', methods = ['GET', 'POST'])
+@login_required
+def org_edit(name):
+    org = g.user.organizations.filter_by(name = name).first()
+    form = OrgEditForm(g.user, org.name)
+    if form.validate_on_submit():
+        org.name = form.name.data
+        db.session.add(org)
+        db.session.commit()
+        flash(gettext('Your changes have been saved.'))
+        return redirect(url_for('org_edit', name = org.name))
+    elif request.method != "POST":
+        form.name.data = org.name
+    return render_template('org_edit.html',
+        form = form)
+
+
+@app.route('/org_deploy/<name>', methods = ['GET', 'POST'])
+@login_required
+def org_deploy(name):
+    org = g.user.organizations.filter_by(name = name).first()
+    envs = org.envs.all()
+    return render_template('org_deploy.html',
+        org = org,
+        envs = envs)
+
+@app.route('/env_add/<org_name>', methods = ['POST'])
+@login_required
+def env_add(org_name):
+    org = g.user.organizations.filter_by(name = org_name).first()
+    form = EnvEditForm(org, "")
+    if form.validate_on_submit():
+        env = Env(name = form.name.data, org = org, timestamp = datetime.utcnow())
+        db.session.add(env)
+        db.session.commit()
+        flash(gettext('Your settings have been saved.'))
+        return redirect(url_for('org_deploy', name = org.name))
+    return render_template('org_deploy.html', form = form)
+
+@app.route('/grp_add/<org_name>/<env_name>', methods = ['POST'])
+@login_required
+def grp_add(org_name, env_name):
+    org = g.user.organizations.filter_by(name = org_name).first()
+    env = org.envs.filter_by(name = env_name).first()
+    form = GrpEditForm(org, env, "")
+    if form.validate_on_submit():
+        grp = Group(name = form.name.data, env = env, timestamp = datetime.utcnow())
+        db.session.add(grp)
+        db.session.commit()
+        flash(gettext('Your settings have been saved.'))
+        return redirect(url_for('org_deploy', name = org.name))
+    return render_template('grp_edit.html', form = form)
+
+@app.route('/node_add/<org_name>/<env_name>/<grp_name>', methods = ['POST'])
+@login_required
+def node_add(org_name, env_name, grp_name):
+    org = g.user.organizations.filter_by(name = org_name).first()
+    env = org.envs.filter_by(name = env_name).first()
+    grp = env.groups.filter_by(name = grp_name).first()
+    form = NodeEditForm(org, env, grp, "")
+    if form.validate_on_submit():
+        node = Node(name = form.name.data, grp =grp, timestamp = datetime.utcnow(), ip = form.ip.data)
+        db.session.add(node)
+        db.session.commit()
+        flash(gettext('Your settings have been saved.'))
+        return redirect(url_for('org_deploy', name = org.name))
+    return render_template('node_edit.html', form = form)
+
+@app.route('/node_edit/<org_name>/<env_name>/<grp_name>/<node_name>', methods = ['GET', 'POST'])
+@login_required
+def node_edit(org_name, env_name, grp_name, node_name):
+    org = g.user.organizations.filter_by(name = org_name).first()
+    env = org.envs.filter_by(name = env_name).first()
+    grp = env.groups.filter_by(name = grp_name).first()
+    node = grp.nodes.filter_by(name = node_name).first()
+    form = NodeEditForm(org, env, grp, node.name)
+    if form.validate_on_submit():
+        node.name = form.name.data
+        node.ip = form.ip.data
+        db.session.add(node)
+        db.session.commit()
+        flash(gettext('Your changes have been saved.'))
+        return redirect(url_for('org_deploy', name = org.name))
+    elif request.method != "POST":
+        form.name.data = node.name
+        form.ip.data = node.ip
+    return render_template('node_edit.html',
+        form = form)
+
 @app.route('/run/<name>', methods = ['GET', 'POST'])
 @login_required
 def run(name):
@@ -186,6 +289,34 @@ def run(name):
     output = command.run(timeout=1, shell=True)
     return render_template('output.html',
         output = output)
+
+@app.route('/bootstrap/<ip>/<grp_name>', methods = ['GET', 'POST'])
+@login_required
+def bootstrap(ip, grp_name):
+    command = Command("c:\\Users\\sgopalak\\chef-repo\\bootstrap.bat " + ip + " " + grp_name)
+    output = command.run(timeout=None, shell=True)
+    return render_template('output.html',
+        output = output)
+
+@app.route('/deploy/<node_name>/<grp_name>', methods = ['GET', 'POST'])
+@login_required
+def deploy(node_name, grp_name):
+    command = Command("c:\\Users\\sgopalak\\chef-repo\\deploy.bat " + node_name + " " + grp_name)
+    output = command.run(timeout=None, shell=True)
+    return render_template('output.html',
+        output = output)
+        
+@app.route('/update_grp/<org_name>/<env_name>/<grp_name>', methods = ['POST'])
+@login_required
+def update_grp(org_name, env_name, grp_name):
+    org = g.user.organizations.filter_by(name = org_name).first()
+    env = org.envs.filter_by(name = env_name).first()
+    envs = org.envs.all()
+    grp = env.groups.filter_by(name = grp_name).first()
+    nodes = grp.nodes.all()
+    for node in nodes:
+        deploy(node.name, grp.name)
+    return render_template('org_deploy.html', org = org, envs = envs)
 
 @app.route('/follow/<nickname>')
 @login_required

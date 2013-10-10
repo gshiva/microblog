@@ -1,0 +1,22 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ _('Deploy') }}</h1>
+{% include 'flash.html' %}
+<form action="{{url_for('env_add', org_name = org.name)}}" method="post">
+    <input class="btn btn-primary" type="submit" name="new_env" value="New Environment">
+</form>
+{% for env in envs %}
+{% set grps = env.groups.all() %}
+<div class="well">
+<h2>{{ _('%(env_name)s', env_name = env.name) }} </a> </h2>
+<form action="{{url_for('grp_add', org_name = org.name, env_name = env.name )}}" method="post">
+    <input class="btn btn-primary" type="submit" name="new_grp" value="New Group">
+</form>
+    {%    for grp in grps %}
+          {%   include 'grp.html' %}
+    {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}

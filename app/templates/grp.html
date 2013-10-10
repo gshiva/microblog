@@ -1,0 +1,32 @@
+<div class="well">
+<table class="table table-hover">
+    <tr>
+        <td>
+            <h4><span id="grp{{grp.id}}">Group Name = {{grp.name}}</span></strong></h4>
+            <h5><span id="grp{{grp.id}}">Updated {{ _('%(when)s', when = momentjs(grp.timestamp).fromNow()) }}</h5>
+            <form action="{{url_for('node_add', org_name = org.name, env_name = env.name , grp_name = grp.name)}}" method="post">
+                <input class="btn btn-primary" type="submit" name="add_node" value="Add Node">
+            </form>
+        </td>
+        <td>
+            <form action="{{url_for('update_grp', org_name = org.name, env_name = env.name , grp_name = grp.name)}}" method="post">
+                <input class="btn btn-primary" type="submit" name="update_all" value="Update All!">
+            </form>
+        </td>
+    </tr>
+    {% set nodes = grp.nodes.all() %}
+    <div class="well">
+        <table class="table table-hover">
+        <tr>
+        <th>Node Name</th>
+        <th>IP/HOSTNAME</th>
+        <th>Bootstrap</th>
+        <th>Deploy/Update</th>
+        </tr>
+        {%    for node in nodes %}
+              {%   include 'node.html' %}
+        {% endfor %}
+        </table>
+    </div>
+</table>
+</div>

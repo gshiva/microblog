@@ -12,6 +12,12 @@ followers = db.Table('followers',
     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
 )
 
+
+class NameValidator:
+    @staticmethod
+    def make_valid_name(nickname):
+        return re.sub('[^a-zA-Z0-9_\.\ ]', '', nickname)
+    
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     nickname = db.Column(db.String(64), unique = True)
@@ -19,6 +25,7 @@ class User(db.Model):
     role = db.Column(db.SmallInteger, default = ROLE_USER)
     posts = db.relationship('Post', backref = 'author', lazy = 'dynamic')
     settings = db.relationship('MCSetting', backref = 'author', lazy = 'dynamic')
+    organizations = db.relationship('Organization', backref = 'user', lazy = 'dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime)
     followed = db.relationship('User', 
@@ -30,7 +37,7 @@ class User(db.Model):
 
     @staticmethod
     def make_valid_nickname(nickname):
-        return re.sub('[^a-zA-Z0-9_\.]', '', nickname)
+        return NameValidator.make_valid_name(nickname)
 
     @staticmethod
     def make_unique_nickname(nickname):
@@ -90,6 +97,72 @@ class Post(db.Model):
     def __repr__(self): # pragma: no cover
         return '<Post %r>' % (self.body)
 
+class Organization(db.Model):
+    __searchable__ = ['name']
+    
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(140), unique = True)
+    timestamp = db.Column(db.DateTime)
+    envs = db.relationship('Env', backref = 'org', lazy = 'dynamic')
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    @staticmethod
+    def make_valid_name(nickname):
+        return NameValidator.make_valid_name(nickname)
+
+    def __repr__(self): # pragma: no cover
+        return '<Organization %r>' % (self.name)
+
+class Env(db.Model):
+    __searchable__ = ['name']
+    
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(140), unique = True)
+    timestamp = db.Column(db.DateTime)
+    groups = db.relationship('Group', backref = 'env', lazy = 'dynamic')
+    org_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
+
+    @staticmethod
+    def make_valid_name(nickname):
+        return NameValidator.make_valid_name(nickname)
+
+    def __repr__(self): # pragma: no cover
+        return '<Environment %r>' % (self.name)
+
+class Group(db.Model):
+    __searchable__ = ['name']
+    
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(140), unique = True)
+    timestamp = db.Column(db.DateTime)
+    nodes = db.relationship('Node', backref = 'grp', lazy = 'dynamic')
+    env_id = db.Column(db.Integer, db.ForeignKey('env.id'))
+
+    @staticmethod
+    def make_valid_name(nickname):
+        return NameValidator.make_valid_name(nickname)
+
+    def __repr__(self): # pragma: no cover
+        return '<Group %r>' % (self.name)
+
+class Node(db.Model):
+    __searchable__ = ['name']
+
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(140), unique = True)
+    fd_space = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime)
+    ip = db.Column(db.String(45), unique = True)
+    grp_id = db.Column(db.Integer, db.ForeignKey('group.id'))
+
+    @staticmethod
+    def make_valid_name(nickname):
+        return NameValidator.make_valid_name(nickname)
+
+    def __repr__(self): # pragma: no cover
+        return '<Node %r>' % (self.name)
+	
+
 class MCSetting(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(255))
@@ -103,8 +176,8 @@ class MCSetting(db.Model):
         return '<MCSetting %r>' % (self.physics_verbosity)
 
     @staticmethod
-    def make_valid_name(name):
-        return re.sub('[^a-zA-Z0-9_\.]', '', name)
+    def make_valid_name(nickname):
+        return NameValidator.make_valid_name(nickname)
 
 if WHOOSH_ENABLED:
     import flask.ext.whooshalchemy as whooshalchemy
