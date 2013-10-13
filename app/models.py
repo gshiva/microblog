@@ -163,6 +163,8 @@ class Node(db.Model):
 	
 
 class Customer(db.Model):
+    __searchable__ = ['name', 'email']
+
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(255))
     email = db.Column(db.String(140))
@@ -180,4 +182,4 @@ class Customer(db.Model):
 
 if WHOOSH_ENABLED:
     import flask.ext.whooshalchemy as whooshalchemy
-    whooshalchemy.whoosh_index(app, Post)
+    whooshalchemy.whoosh_index(app, Customer)

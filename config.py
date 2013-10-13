@@ -33,7 +33,7 @@ MAIL_USE_TLS = False
 MAIL_USE_SSL = True
 MAIL_USERNAME = 'gshivakumar@gmail.com'
 MAIL_PASSWORD = 'my1passport'
-
+MAIL_DEFAULT_SENDER = 'shivakumar.gopalakrishnan@varian.com'
 # administrator list
 ADMINS = ['shivakumar.gopalakrishnan@varian.com']
 
