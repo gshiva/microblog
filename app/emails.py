@@ -25,4 +25,12 @@ def follower_notification(followed, follower):
             user = followed, follower = follower),
         render_template("follower_email.html", 
             user = followed, follower = follower))
-        
+
+def customer_notification(customer, user):
+    send_email("You are all set to go!",
+        user.email,
+        [customer.email],
+        render_template("customer_email.txt",
+             customer = customer, user = user),
+        render_template("customer_email.html",
+             customer = customer, user = user))

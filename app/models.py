@@ -24,8 +24,7 @@ class User(db.Model):
     email = db.Column(db.String(120), index = True, unique = True)
     role = db.Column(db.SmallInteger, default = ROLE_USER)
     posts = db.relationship('Post', backref = 'author', lazy = 'dynamic')
-    settings = db.relationship('MCSetting', backref = 'author', lazy = 'dynamic')
-    organizations = db.relationship('Organization', backref = 'user', lazy = 'dynamic')
+    customers = db.relationship('Customer', backref = 'user', lazy = 'dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime)
     followed = db.relationship('User', 
@@ -163,17 +162,17 @@ class Node(db.Model):
         return '<Node %r>' % (self.name)
 	
 
-class MCSetting(db.Model):
+class Customer(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(255))
-    physics_verbosity = db.Column(db.Integer)
-    physics_SetList = db.Column(db.String(140))
+    email = db.Column(db.String(140))
+    aws_acct_id = db.Column(db.Integer)
     timestamp = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     language = db.Column(db.String(5))
 
     def __repr__(self): # pragma: no cover
-        return '<MCSetting %r>' % (self.physics_verbosity)
+        return '<Customer %r>' % (self.email)
 
     @staticmethod
     def make_valid_name(nickname):

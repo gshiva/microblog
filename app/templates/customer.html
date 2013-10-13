@@ -6,8 +6,8 @@
             <p>{{ _('%(nickname)s\'s Customer Information:', nickname = '<a href="%s">%s</a>' % (url_for('user', nickname = customer.user.nickname), customer.user.nickname)) }}</p>
             {% endautoescape %}
             <p><strong><span id="customer{{customer.id}}">Name = {{customer.name}}</span></strong></p>
-            <p><strong><span id="customer{{customer.name}}">Email = {{customer.email}}</span></strong></p>
-            <p><strong><span id="customer{{customer.email}}">AWS Account ID = {{customer.aws_acct_id}}</span></strong></p>
+            <p><strong><span id="customer{{customer.email}}">Email = {{customer.email}}</span></strong></p>
+            <p><strong><span id="customer{{customer.aws_acct_id}}">AWS Account ID = {{customer.aws_acct_id}}</span></strong></p>
             <p><strong><span id="customer{{customer.id}}">Updated {{ _('%(when)s', when = momentjs(customer.timestamp).fromNow()) }}</span></strong></p>
         </td>
         <td>

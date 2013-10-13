@@ -4,10 +4,11 @@ from flask.ext.sqlalchemy import get_debug_queries
 from flask.ext.babel import gettext
 from app import app, db, lm, oid, babel
 from run import Command
-from forms import LoginForm, EditForm, PostForm, SearchForm, MCEditForm, OrgEditForm, EnvEditForm, GrpEditForm, NodeEditForm
-from models import User, ROLE_USER, ROLE_ADMIN, Post, MCSetting, Organization, Env, Group, Node
+from forms import LoginForm, EditForm, PostForm, SearchForm, CustomerEditForm, OrgEditForm, EnvEditForm, GrpEditForm, NodeEditForm
+from models import User, ROLE_USER, ROLE_ADMIN, Post, Organization, Env, Group, Node, Customer
 from datetime import datetime
-from emails import follower_notification
+from emails import follower_notification, customer_notification
+from ec2 import share_image
 from guess_language import guessLanguage
 from translate import microsoft_translate
 from config import POSTS_PER_PAGE, MAX_SEARCH_RESULTS, LANGUAGES, DATABASE_QUERY_TIMEOUT, WHOOSH_ENABLED
@@ -66,14 +67,12 @@ def index(page = 1):
         flash(gettext('Your post is now live!'))
         return redirect(url_for('index'))
     posts = g.user.followed_posts().paginate(page, POSTS_PER_PAGE, False)
-    orgs = 	g.user.organizations.all()
-    mcsettings = g.user.settings.all()
+    customers = g.user.customers.all()
     return render_template('index.html',
         title = 'Home',
         form = form,
         posts = posts,
-		orgs = orgs,
-        mcsettings = mcsettings)
+        customers = customers)
 
 @app.route('/login', methods = ['GET', 'POST'])
 @oid.loginhandler
@@ -149,36 +148,45 @@ def edit():
     return render_template('edit.html',
         form = form)
 
-@app.route('/mc_add', methods = ['POST'])
+def share_to_aws(aws_acct_id):
+        image_id = 'ami-3c79e60c'
+        return share_image(aws_acct_id, image_id)
+    
+@app.route('/cust_add', methods = ['POST'])
 @login_required
-def mc_add():
-    form = MCEditForm(g.user, "")
+def cust_add():
+    form = CustomerEditForm(g.user, "")
     if form.validate_on_submit():
-        mcs = MCSetting(name = form.name.data, physics_verbosity = form.verbosity.data, physics_SetList = form.set_list.data, author = g.user, timestamp = datetime.utcnow())
-        db.session.add(mcs)
+        cust = Customer(name = form.name.data, email = form.email.data, aws_acct_id = form.aws_acct_id.data, user = g.user, timestamp = datetime.utcnow())
+        db.session.add(cust)
         db.session.commit()
-        flash(gettext('Your settings have been saved.'))
+        customer_notification(cust, g.user)
+        share_to_aws(cust.aws_acct_id)
+        flash(gettext('The customer information has been saved.'))
         return redirect(url_for('index'))
-    return render_template('mcsetting_edit.html', form = form)
+    return render_template('cust_edit.html', form = form)
 
-@app.route('/mc_edit/<name>', methods = ['GET', 'POST'])
+@app.route('/cust_edit/<name>', methods = ['GET', 'POST'])
 @login_required
-def mc_edit(name):
-    mcs = g.user.settings.filter_by(name = name).first()
-    form = MCEditForm(g.user, mcs.name)
+def cust_edit(name):
+    cust = g.user.customers.filter_by(name = name).first()
+    form = CustomerEditForm(g.user, cust.name)
     if form.validate_on_submit():
-        mcs.name = form.name.data
-        mcs.physics_verbosity = form.verbosity.data
-        mcs.physics_SetList = form.set_list.data
-        db.session.add(mcs)
+        cust.name = form.name.data
+        cust.email = form.email.data
+        cust.aws_acct_id = form.aws_acct_id.data
+        db.session.add(cust)
         db.session.commit()
-        flash(gettext('Your changes have been saved.'))
-        return redirect(url_for('mc_edit', name = mcs.name))
+        share_to_aws(cust.aws_acct_id)
+        
+        customer_notification(cust, g.user)
+        flash(gettext('The customer information changes have been saved.'))
+        return redirect(url_for('cust_edit', name = cust.name))
     elif request.method != "POST":
-        form.name.data = mcs.name
-        form.verbosity.data = mcs.physics_verbosity
-        form.set_list.data = mcs.physics_SetList
-    return render_template('mcsetting_edit.html',
+        form.name.data = cust.name
+        form.email.data = cust.email
+        form.aws_acct_id.data = cust.aws_acct_id
+    return render_template('cust_edit.html',
         form = form)
 
 @app.route('/org_add', methods = ['POST'])

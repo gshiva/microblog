@@ -1,4 +1,4 @@
-{{ _('Dear %(name)s,', name = customer.nickname) }}
+{{ _('Dear %(name)s,', name = customer.name) }}
 
 {{ _('You are all set to go!') }}
 
@@ -15,4 +15,4 @@
 
 {{ _('Regards,') }}
 
-{{ _('%(name)s', name = user.name) }}
+{{ _('%(name)s', name = user.nickname) }}

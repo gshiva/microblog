@@ -3,7 +3,7 @@ import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 CSRF_ENABLED = True
-SECRET_KEY = 'you-will-never-guess'
+SECRET_KEY = 'sad)t%6_9%$2b@1)kq&_h*yx#4vb+yh_cteb+-q0!gpo)&4z%9!7tasdf'
 
 OPENID_PROVIDERS = [
     { 'name': 'Google', 'url': 'https://www.google.com/accounts/o8/id' },
@@ -27,12 +27,15 @@ WHOOSH_ENABLED = os.environ.get('HEROKU') is None
 DATABASE_QUERY_TIMEOUT = 0.5
 
 # email server
-MAIL_SERVER = '' # your mailserver
-MAIL_PORT = 25
+MAIL_SERVER = 'smtp.googlemail.com'
+MAIL_PORT = 465
 MAIL_USE_TLS = False
-MAIL_USE_SSL = False
-MAIL_USERNAME = 'you'
-MAIL_PASSWORD = 'your-password'
+MAIL_USE_SSL = True
+MAIL_USERNAME = 'gshivakumar@gmail.com'
+MAIL_PASSWORD = 'my1passport'
+
+# administrator list
+ADMINS = ['shivakumar.gopalakrishnan@varian.com']
 
 # available languages
 LANGUAGES = {
@@ -44,8 +47,6 @@ LANGUAGES = {
 MS_TRANSLATOR_CLIENT_ID = '' # enter your MS translator app id here
 MS_TRANSLATOR_CLIENT_SECRET = '' # enter your MS translator app secret here
 
-# administrator list
-ADMINS = ['you@example.com']
 
 # pagination
 POSTS_PER_PAGE = 50

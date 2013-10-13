@@ -1,7 +1,7 @@
 from flask.ext.wtf import Form, TextField, BooleanField, TextAreaField, IntegerField
-from flask.ext.wtf import Required, Length
+from flask.ext.wtf import Required, Length, NumberRange
 from flask.ext.babel import gettext
-from app.models import User, MCSetting, Organization, Env, Group, Node
+from app.models import User, Organization, Env, Group, Node, Customer
 
 class LoginForm(Form):
     openid = TextField('openid', validators = [Required()])
@@ -35,10 +35,11 @@ class PostForm(Form):
 class SearchForm(Form):
     search = TextField('search', validators = [Required()])
 
-class MCEditForm(Form):
+class CustomerEditForm(Form):
     name = TextField('name', validators = [Required()])
-    verbosity = IntegerField('verbosity', default = 0)
-    set_list = TextAreaField('set_list', validators = [Length(min = 0, max = 140)])
+    email = TextField('email', validators = [Required()])
+    aws_acct_id = IntegerField('aws_acct_id', default = 999999999999, 
+                                 validators = [Required(), NumberRange(min = 100000000000, max = 999999999999, message = "AWS account id must have 12 digits")])
 
     def __init__(self, user, original_name, *args, **kwargs):
         Form.__init__(self, *args, **kwargs)
@@ -48,18 +49,22 @@ class MCEditForm(Form):
     def validate(self):
         if not Form.validate(self):
             return False
+        # simple check to see if there are 12 digits in the number
+        if self.aws_acct_id.data < 100000000000 or self.aws_acct_id.data > 999999999999:
+            self.aws_acct_id.errors.append(gettext('AWS account id must have 12 digits'))
+            return False
         if self.name.data == self.original_name:
             return True
-        if self.name.data != MCSetting.make_valid_name(self.name.data):
+        if self.name.data != Customer.make_valid_name(self.name.data):
             self.name.errors.append(gettext('This name has invalid characters. Please use letters, numbers, dots and underscores only.'))
             return False
         user = User.query.filter_by(nickname = self.user_name).first()
         if user == None:
             self.name.errors.append(gettext('The user name was not found'))
             return False
-        mcs = user.settings.filter_by(name = self.name.data).first()
-        if mcs != None:
-            self.name.errors.append(gettext('The config name already exists'))
+        customer = user.customers.filter_by(name = self.name.data).first()
+        if customer != None:
+            self.name.errors.append(gettext('The customer already exists'))
             return False
         return True
 
