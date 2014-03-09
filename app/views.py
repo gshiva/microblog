@@ -5,7 +5,7 @@ from flask.ext.babel import gettext
 from app import app, db, lm, oid, babel
 from run import Command
 from forms import LoginForm, EditForm, PostForm, SearchForm, CustomerEditForm, OrgEditForm, EnvEditForm, GrpEditForm, NodeEditForm
-from models import User, ROLE_USER, ROLE_ADMIN, Post, Organization, Env, Group, Node, Customer
+from models import User, ROLE_USER, ROLE_ADMIN, Post, Organization, Env, Group, Node, Customer, ConferenceRoom
 from datetime import datetime
 from emails import follower_notification, customer_notification
 from ec2 import share_image
@@ -147,6 +147,7 @@ def edit():
         form.about_me.data = g.user.about_me
     return render_template('edit.html',
         form = form)
+
 
 def share_to_aws(aws_acct_id):
         image_id = 'ami-3c79e60c'
@@ -387,13 +388,21 @@ def search():
         return redirect(url_for('index'))
     return redirect(url_for('search_results', query = g.search_form.search.data))
 
+@app.route('/find', methods = ['GET', 'POST'])
+@login_required
+def find():
+    rooms = ConferenceRoom.query.all()
+    return render_template('rooms.html', rooms = rooms)
+
 @app.route('/search_results/<query>')
 @login_required
 def search_results(query):
     results = Customer.query.whoosh_search(query, MAX_SEARCH_RESULTS).all()
+    room_results = ConferenceRoom.query.whoosh_search(query, MAX_SEARCH_RESULTS).all()
     return render_template('search_results.html',
         query = query,
-        results = results)
+        results = results,
+        room_results = room_results)
 
 @app.route('/translate', methods = ['POST'])
 @login_required
@@ -403,4 +412,3 @@ def translate():
             request.form['text'],
             request.form['sourceLang'],
             request.form['destLang']) })
-

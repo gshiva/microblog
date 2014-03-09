@@ -1,0 +1,18 @@
+
+<table class="table">
+    <tr>
+        <td><h2>{{room.name}} Bldg: {{room.bldg}} Conference phone: {{room.polycom}} Location: {{room.location}}</h2>
+        </td>
+    </tr>
+    <tr>
+        <td><img width="800" id='room_{{room.id}}' src="{{room.img}}" /></td>
+    </tr>
+    <tr>
+        <td><h2>Outlook Booking: {{room.outlook_booking_name}} Equipment: {{room.equipment}} Capacity: {{room.capacity}} Seats at Table: {{room.seats_at_table}}</h2>
+    </tr>
+</table>
+<script>
+        $(document).ready(function(){
+            $('#room_{{room.id}}').wheelzoom();
+        })
+</script>

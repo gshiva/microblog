@@ -11,6 +11,7 @@
     <script src="http://code.jquery.com/jquery-latest.js"></script>
     <script src="{{ url_for('.static', filename = 'js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('.static', filename = 'js/moment.min.js') }}"></script>
+    <script src="{{ url_for('.static', filename = 'js/jquery.wheelzoom.js') }}"></script>
     {% if g.locale != 'en' %}
     <script src="{{ url_for('.static', filename = 'js/moment-' + g.locale + '.min.js') }}"></script>
     {% endif %}

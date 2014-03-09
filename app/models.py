@@ -183,3 +183,34 @@ class Customer(db.Model):
 if WHOOSH_ENABLED:
     import flask.ext.whooshalchemy as whooshalchemy
     whooshalchemy.whoosh_index(app, Customer)
+
+class ConferenceRoom(db.Model):
+    __searchable__ = ['name', 'email', 'location', 'bldg', 'room', 'phone', 'equipment', 'outlook_booking_name']
+
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(255))
+    email = db.Column(db.String(140))
+    location = db.Column(db.String(255))
+    bldg = db.Column(db.String(255))
+    floor = db.Column(db.Integer)
+    room = db.Column(db.String(255))
+    img = db.Column(db.String(255))
+    img_name = db.Column(db.String(255))
+    capacity = db.Column(db.Integer)
+    seats_at_table = db.Column(db.Integer)
+    phone = db.Column(db.String(255))
+    polycom = db.Column(db.String(255))
+    equipment = db.Column(db.String(255))
+    outlook_booking_name = db.Column(db.String(255))
+    timestamp = db.Column(db.DateTime)
+    language = db.Column(db.String(5))
+
+    def __repr__(self): # pragma: no cover
+        return '<Conference Room %r>' % (self.name)
+
+    @staticmethod
+    def make_valid_name(nickname):
+        return NameValidator.make_valid_name(nickname)
+
+if WHOOSH_ENABLED:
+    whooshalchemy.whoosh_index(app, ConferenceRoom)
