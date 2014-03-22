@@ -44,8 +44,4 @@ class Command(object):
         if thread.is_alive():
             self.process.terminate()
             thread.join()
-<<<<<<< HEAD
-        return self.command, self.status, self.output, self.error
-=======
         return self.status, self.output, self.error
->>>>>>> 60ea66237ab0b069c8fd093665ee49e4a6976e32
