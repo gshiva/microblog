@@ -19,11 +19,7 @@ class Command(object):
 
     def __init__(self, command):
         if isinstance(command, basestring):
-<<<<<<< HEAD
             command = shlex.split(command, posix = False)
-=======
-            command = shlex.split(command)
->>>>>>> 60ea66237ab0b069c8fd093665ee49e4a6976e32
         self.command = command
 
     def run(self, timeout=None, **kwargs):
