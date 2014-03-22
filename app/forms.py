@@ -1,5 +1,7 @@
-from flask.ext.wtf import Form, TextField, BooleanField, TextAreaField, IntegerField
-from flask.ext.wtf import Required, Length
+from flask.ext.wtf import Form
+from wtforms import TextField, BooleanField, TextAreaField
+from wtforms.validators import Required, Length
+
 from flask.ext.babel import gettext
 from app.models import User, MCSetting, Organization, Env, Group, Node
 
@@ -37,7 +39,6 @@ class SearchForm(Form):
 
 class MCEditForm(Form):
     name = TextField('name', validators = [Required()])
-    verbosity = IntegerField('verbosity', default = 0)
     set_list = TextAreaField('set_list', validators = [Length(min = 0, max = 140)])
 
     def __init__(self, user, original_name, *args, **kwargs):
