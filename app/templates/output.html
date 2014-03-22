@@ -5,10 +5,16 @@
 <h1>{{ _('Command output') }}</h1>
 {% include 'flash.html' %}
 <div class="well">
+<<<<<<< HEAD
 <h2>{{ _('Command =, %(command)s', command = output[0]) }}</h2>
 <h2>{{ _('Stdout =, %(stdout)s', stdout = output[2]) }}</h2>
 <h2>{{ _('Stderr =, %(stderr)s', stderr = output[3]) }}</h2>
 <h2>{{ _('Exit code =, %(exitcode)s', exitcode = output[1]) }}</h2>
+=======
+<h2>{{ _('Stdout =, %(stdout)s', stdout = output[1]) }}</h2>
+<h2>{{ _('Stderr =, %(stderr)s', stderr = output[2]) }}</h2>
+<h2>{{ _('Exit code =, %(exitcode)s', exitcode = output[0]) }}</h2>
+>>>>>>> 60ea66237ab0b069c8fd093665ee49e4a6976e32
 
 </div>
 </form>
