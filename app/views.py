@@ -4,13 +4,12 @@ from flask.ext.sqlalchemy import get_debug_queries
 from flask.ext.babel import gettext
 from app import app, db, lm, oid, babel
 from run import Command
-from forms import LoginForm, EditForm, PostForm, SearchForm, MCEditForm, OrgEditForm, EnvEditForm, GrpEditForm, NodeEditForm
-from models import User, ROLE_USER, ROLE_ADMIN, Post, MCSetting, Organization, Env, Group, Node
+from forms import LoginForm, EditForm, DeployForm, SearchForm, OrgEditForm, NodeEditForm
+from models import User, ROLE_USER, ROLE_ADMIN, Organization, Node
 from datetime import datetime
-from emails import follower_notification
 from guess_language import guessLanguage
 from translate import microsoft_translate
-from config import POSTS_PER_PAGE, MAX_SEARCH_RESULTS, LANGUAGES, DATABASE_QUERY_TIMEOUT, WHOOSH_ENABLED
+from config import MAX_SEARCH_RESULTS, LANGUAGES, DATABASE_QUERY_TIMEOUT, WHOOSH_ENABLED
 
 @lm.user_loader
 def load_user(id):
@@ -52,28 +51,18 @@ def internal_error(error):
 @app.route('/index/<int:page>', methods = ['GET', 'POST'])
 @login_required
 def index(page = 1):
-    form = PostForm()
+    orgs = g.user.organizations.all()
+    form = DeployForm()
     if form.validate_on_submit():
-        language = guessLanguage(form.post.data)
-        if language == 'UNKNOWN' or len(language) > 5:
-            language = ''
-        post = Post(body = form.post.data,
-            timestamp = datetime.utcnow(),
-            author = g.user,
-            language = language)
-        db.session.add(post)
-        db.session.commit()
-        flash(gettext('Your post is now live!'))
-        return redirect(url_for('index'))
-    posts = g.user.followed_posts().paginate(page, POSTS_PER_PAGE, False)
-    orgs = 	g.user.organizations.all()
-    mcsettings = g.user.settings.all()
+        mmfs = form.mmfs.data
+        org = form.org.data
+        flash(gettext('The MMFS %(mmfs)s have been deployed to %(org)s', mmfs = mmfs, org = org))
+
     return render_template('index.html',
-        title = 'Home',
-        form = form,
-        posts = posts,
-		orgs = orgs,
-        mcsettings = mcsettings)
+        title = 'Deploy',
+        orgs = orgs,
+        form = form
+        )
 
 @app.route('/login', methods = ['GET', 'POST'])
 @oid.loginhandler
@@ -104,9 +93,6 @@ def after_login(resp):
         user = User(nickname = nickname, email = resp.email, role = ROLE_USER)
         db.session.add(user)
         db.session.commit()
-        # make the user follow him/herself
-        db.session.add(user.follow(user))
-        db.session.commit()
     remember_me = False
     if 'remember_me' in session:
         remember_me = session['remember_me']
@@ -127,10 +113,9 @@ def user(nickname, page = 1):
     if user == None:
         flash(gettext('User %(nickname)s not found.', nickname = nickname))
         return redirect(url_for('index'))
-    posts = user.posts.paginate(page, POSTS_PER_PAGE, False)
     return render_template('user.html',
-        user = user,
-        posts = posts)
+        user = user
+        )
 
 @app.route('/edit', methods = ['GET', 'POST'])
 @login_required
@@ -147,38 +132,6 @@ def edit():
         form.nickname.data = g.user.nickname
         form.about_me.data = g.user.about_me
     return render_template('edit.html',
-        form = form)
-
-@app.route('/mc_add', methods = ['POST'])
-@login_required
-def mc_add():
-    form = MCEditForm(g.user, "")
-    if form.validate_on_submit():
-        mcs = MCSetting(name = form.name.data, physics_verbosity = form.verbosity.data, physics_SetList = form.set_list.data, author = g.user, timestamp = datetime.utcnow())
-        db.session.add(mcs)
-        db.session.commit()
-        flash(gettext('Your settings have been saved.'))
-        return redirect(url_for('index'))
-    return render_template('mcsetting_edit.html', form = form)
-
-@app.route('/mc_edit/<name>', methods = ['GET', 'POST'])
-@login_required
-def mc_edit(name):
-    mcs = g.user.settings.filter_by(name = name).first()
-    form = MCEditForm(g.user, mcs.name)
-    if form.validate_on_submit():
-        mcs.name = form.name.data
-        mcs.physics_verbosity = form.verbosity.data
-        mcs.physics_SetList = form.set_list.data
-        db.session.add(mcs)
-        db.session.commit()
-        flash(gettext('Your changes have been saved.'))
-        return redirect(url_for('mc_edit', name = mcs.name))
-    elif request.method != "POST":
-        form.name.data = mcs.name
-        form.verbosity.data = mcs.physics_verbosity
-        form.set_list.data = mcs.physics_SetList
-    return render_template('mcsetting_edit.html',
         form = form)
 
 @app.route('/org_add', methods = ['POST'])
@@ -219,56 +172,25 @@ def org_deploy(name):
         org = org,
         envs = envs)
 
-@app.route('/env_add/<org_name>', methods = ['POST'])
-@login_required
-def env_add(org_name):
-    org = g.user.organizations.filter_by(name = org_name).first()
-    form = EnvEditForm(org, "")
-    if form.validate_on_submit():
-        env = Env(name = form.name.data, org = org, timestamp = datetime.utcnow())
-        db.session.add(env)
-        db.session.commit()
-        flash(gettext('Your settings have been saved.'))
-        return redirect(url_for('org_deploy', name = org.name))
-    return render_template('org_deploy.html', form = form)
-
-@app.route('/grp_add/<org_name>/<env_name>', methods = ['POST'])
-@login_required
-def grp_add(org_name, env_name):
-    org = g.user.organizations.filter_by(name = org_name).first()
-    env = org.envs.filter_by(name = env_name).first()
-    form = GrpEditForm(org, env, "")
-    if form.validate_on_submit():
-        grp = Group(name = form.name.data, env = env, timestamp = datetime.utcnow())
-        db.session.add(grp)
-        db.session.commit()
-        flash(gettext('Your settings have been saved.'))
-        return redirect(url_for('org_deploy', name = org.name))
-    return render_template('grp_edit.html', form = form)
-
-@app.route('/node_add/<org_name>/<env_name>/<grp_name>', methods = ['POST'])
+@app.route('/node_add/<org_name>', methods = ['POST'])
 @login_required
 def node_add(org_name, env_name, grp_name):
     org = g.user.organizations.filter_by(name = org_name).first()
-    env = org.envs.filter_by(name = env_name).first()
-    grp = env.groups.filter_by(name = grp_name).first()
-    form = NodeEditForm(org, env, grp, "")
+    form = NodeEditForm(org, "")
     if form.validate_on_submit():
-        node = Node(name = form.name.data, grp =grp, timestamp = datetime.utcnow(), ip = form.ip.data)
+        node = Node(name = form.name.data, org =org, timestamp = datetime.utcnow(), ip = form.ip.data)
         db.session.add(node)
         db.session.commit()
         flash(gettext('Your settings have been saved.'))
         return redirect(url_for('org_deploy', name = org.name))
     return render_template('node_edit.html', form = form)
 
-@app.route('/node_edit/<org_name>/<env_name>/<grp_name>/<node_name>', methods = ['GET', 'POST'])
+@app.route('/node_edit/<org_name>/<node_name>', methods = ['GET', 'POST'])
 @login_required
-def node_edit(org_name, env_name, grp_name, node_name):
+def node_edit(org_name, node_name):
     org = g.user.organizations.filter_by(name = org_name).first()
-    env = org.envs.filter_by(name = env_name).first()
-    grp = env.groups.filter_by(name = grp_name).first()
-    node = grp.nodes.filter_by(name = node_name).first()
-    form = NodeEditForm(org, env, grp, node.name)
+    node = org.nodes.filter_by(name = node_name).first()
+    form = NodeEditForm(org, node.name)
     if form.validate_on_submit():
         node.name = form.name.data
         node.ip = form.ip.data
@@ -290,87 +212,14 @@ def run(name):
     return render_template('output.html',
         output = output)
 
-@app.route('/bootstrap/<ip>/<grp_name>', methods = ['GET', 'POST'])
-@login_required
-def bootstrap(ip, grp_name):
-    command = Command("c:\\Users\\sgopalak\\chef-repo\\bootstrap.bat " + ip + " " + grp_name)
-    output = command.run(timeout=None, shell=True)
-    return render_template('output.html',
-        output = output)
-
-@app.route('/deploy/<node_name>/<grp_name>', methods = ['GET', 'POST'])
+@app.route('/deploy/<node_name>/<org_name>', methods = ['GET', 'POST'])
 @login_required
 def deploy(node_name, grp_name):
-    command = Command("c:\\Users\\sgopalak\\chef-repo\\deploy.bat " + node_name + " " + grp_name)
+    command = Command("c:\\Users\\sgopalak\\chef-repo\\deploy.bat " + node_name + " " + org_name)
     output = command.run(timeout=None, shell=True)
     return render_template('output.html',
         output = output)
         
-@app.route('/update_grp/<org_name>/<env_name>/<grp_name>', methods = ['POST'])
-@login_required
-def update_grp(org_name, env_name, grp_name):
-    org = g.user.organizations.filter_by(name = org_name).first()
-    env = org.envs.filter_by(name = env_name).first()
-    envs = org.envs.all()
-    grp = env.groups.filter_by(name = grp_name).first()
-    nodes = grp.nodes.all()
-    for node in nodes:
-        deploy(node.name, grp.name)
-    return render_template('org_deploy.html', org = org, envs = envs)
-
-@app.route('/follow/<nickname>')
-@login_required
-def follow(nickname):
-    user = User.query.filter_by(nickname = nickname).first()
-    if user == None:
-        flash('User ' + nickname + ' not found.')
-        return redirect(url_for('index'))
-    if user == g.user:
-        flash(gettext('You can\'t follow yourself!'))
-        return redirect(url_for('user', nickname = nickname))
-    u = g.user.follow(user)
-    if u is None:
-        flash(gettext('Cannot follow %(nickname)s.', nickname = nickname))
-        return redirect(url_for('user', nickname = nickname))
-    db.session.add(u)
-    db.session.commit()
-    flash(gettext('You are now following %(nickname)s!', nickname = nickname))
-    follower_notification(user, g.user)
-    return redirect(url_for('user', nickname = nickname))
-
-@app.route('/unfollow/<nickname>')
-@login_required
-def unfollow(nickname):
-    user = User.query.filter_by(nickname = nickname).first()
-    if user == None:
-        flash('User ' + nickname + ' not found.')
-        return redirect(url_for('index'))
-    if user == g.user:
-        flash(gettext('You can\'t unfollow yourself!'))
-        return redirect(url_for('user', nickname = nickname))
-    u = g.user.unfollow(user)
-    if u is None:
-        flash(gettext('Cannot unfollow %(nickname)s.', nickname = nickname))
-        return redirect(url_for('user', nickname = nickname))
-    db.session.add(u)
-    db.session.commit()
-    flash(gettext('You have stopped following %(nickname)s.', nickname = nickname))
-    return redirect(url_for('user', nickname = nickname))
-
-@app.route('/delete/<int:id>')
-@login_required
-def delete(id):
-    post = Post.query.get(id)
-    if post == None:
-        flash('Post not found.')
-        return redirect(url_for('index'))
-    if post.author.id != g.user.id:
-        flash('You cannot delete this post.')
-        return redirect(url_for('index'))
-    db.session.delete(post)
-    db.session.commit()
-    flash('Your post has been deleted.')
-    return redirect(url_for('index'))
     
 @app.route('/search', methods = ['POST'])
 @login_required
@@ -382,7 +231,7 @@ def search():
 @app.route('/search_results/<query>')
 @login_required
 def search_results(query):
-    results = Post.query.whoosh_search(query, MAX_SEARCH_RESULTS).all()
+    results = Node.query.whoosh_search(query, MAX_SEARCH_RESULTS).all()
     return render_template('search_results.html',
         query = query,
         results = results)
