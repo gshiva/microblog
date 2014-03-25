@@ -11,6 +11,8 @@ from guess_language import guessLanguage
 from translate import microsoft_translate
 from config import MAX_SEARCH_RESULTS, LANGUAGES, DATABASE_QUERY_TIMEOUT, WHOOSH_ENABLED
 
+from flask import Markup
+
 @lm.user_loader
 def load_user(id):
     return User.query.get(int(id))
@@ -54,9 +56,20 @@ def index(page = 1):
     orgs = g.user.organizations.all()
     form = DeployForm()
     if form.validate_on_submit():
-        mmfs = form.mmfs.data
+        mmfs = ', '.join(form.mmfs.data)
         org = form.org.data
-        flash(gettext('The MMFS %(mmfs)s have been deployed to %(org)s', mmfs = mmfs, org = org))
+        tag = "owncloud"
+        if "feed" in mmfs:
+             tag = tag + "_feeds"
+        if "note" in mmfs:
+             tag = tag + "_notes"
+        tag =tag + "_" + org
+        cmd = Command("c:\\vms\\agiledemo\\dockerdeploy\\bin\\deploy.bat start " + org + " " + tag);
+        output = cmd.run(shell=True)
+        flash(gettext('The MMFS %(mmfs)s have been deployed to %(org)s:', mmfs = mmfs, org = org))
+        for line in output[1].splitlines():
+            if "<a href" in line:
+                flash(gettext('%(clink)s', clink = line))
 
     return render_template('index.html',
         title = 'Deploy',
@@ -206,7 +219,7 @@ def node_edit(org_name, node_name):
 
 @app.route('/run/<name>', methods = ['GET', 'POST'])
 @login_required
-def run(name):
+def run(mmfs, org):
     command = Command("echo 'Process started'; sleep 2; echo 'Process finished'")
     output = command.run(timeout=1, shell=True)
     return render_template('output.html',

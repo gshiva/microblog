@@ -37,7 +37,7 @@ class EditForm(Form):
 
 class DeployForm(Form):
     mmfs = MultiCheckboxField('MMFs to be deployed', choices = [('notes','Notes'), ('feeds', 'News')])
-    org = SelectField('Organization', choices = [('qa','QA'), ('staging','Staging'), ('prod','Production')])
+    org = SelectField('Organization', choices = [('qa','QA'), ('prod','Staging'), ('prod','Production')])
 
 class SearchForm(Form):
     search = TextField('search', validators = [Required()])
