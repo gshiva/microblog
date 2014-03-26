@@ -1,0 +1,6 @@
+{{ _('Congratulations! The following instances are all good to go!') }}
+
+{{ _('Using the instance is simple. Just click on the link:') }}
+
+{{ _('%(msg)s', msg = msg) }}
+
