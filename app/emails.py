@@ -17,12 +17,12 @@ def send_email(subject, sender, recipients, text_body, html_body):
     #thr.start()
 
     
-def follower_notification(followed, follower):
-    send_email("[Deployinator] %s is now following you!" % follower.nickname,
+def deploy_notification(org, msg):
+    send_email("ownCloud has been launched in %s!" % org,
         ADMINS[0],
-        [followed.email],
-        render_template("follower_email.txt", 
-            user = followed, follower = follower),
-        render_template("follower_email.html", 
-            user = followed, follower = follower))
+        ["shivakumar.gopalakrishnan@varian.com"],
+        render_template("deploy_email.txt", 
+            org = org, msg = msg),
+        render_template("deploy_email.html", 
+            org = org, msg = msg))
         

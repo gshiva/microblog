@@ -12,6 +12,7 @@ from translate import microsoft_translate
 from config import MAX_SEARCH_RESULTS, LANGUAGES, DATABASE_QUERY_TIMEOUT, WHOOSH_ENABLED
 
 from flask import Markup
+from emails import deploy_notification
 
 @lm.user_loader
 def load_user(id):
@@ -66,11 +67,15 @@ def index(page = 1):
         tag =tag + "_" + org
         cmd = Command("c:\\vms\\agiledemo\\dockerdeploy\\bin\\deploy.bat start " + org + " " + tag);
         output = cmd.run(shell=True)
-        flash(gettext('The MMFS %(mmfs)s have been deployed to %(org)s:', mmfs = mmfs, org = org))
+        msg = gettext('The MMFs %(mmfs)s have been deployed to %(org)s:', mmfs = mmfs, org = org)
+        flash(msg)
         for line in output[1].splitlines():
             if "<a href" in line:
                 flash(gettext('%(clink)s', clink = line))
-
+                msg = msg + line
+        # send an email notification
+        deploy_notification(org, msg)
+        flash("Email sent to the master")
     return render_template('index.html',
         title = 'Deploy',
         orgs = orgs,
